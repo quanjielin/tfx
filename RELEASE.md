@@ -6,6 +6,12 @@
 *   Added Iris flowers classification example.
 
 ## Bug fixes and other changes
+*   Updated Chicago Taxi example dependency tensorflow to version >=1.14.0.
+*   Updated Chicago Taxi example dependencies tensorflow-data-validation,
+    tensorflow-metadata, tensorflow-model-analysis, tensorflow-serving-api, and
+    tensorflow-transform to version >=0.14.
+*   Updated Chicago Taxi example dependencies to Beam 2.14.0, Flink 1.8.1, Spark
+    2.4.3.
 
 ### Deprecations
 
