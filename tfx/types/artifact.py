@@ -23,7 +23,6 @@ import builtins
 from typing import Any, Dict, Optional, Text
 
 from ml_metadata.proto import metadata_store_pb2
-from tfx.utils import json_utils
 from google.protobuf import json_format
 
 
@@ -46,7 +45,7 @@ class ArtifactState(object):
 DEFAULT_EXAMPLE_SPLITS = ['train', 'eval']
 
 
-class Artifact(json_utils.Jsonable):
+class Artifact(object):
   """TFX artifact used for orchestration.
 
   This is used for type-checking and inter-component communication. Currently,
@@ -134,7 +133,8 @@ class Artifact(json_utils.Jsonable):
     return 'Artifact(type_name: {}, uri: {}, split: {}, id: {})'.format(
         self.artifact_type.name, self.uri, str(self.split), str(self.id))
 
-  def to_json_dict(self) -> Dict[Text, Any]:
+  def json_dict(self) -> Dict[Text, Any]:
+    """Returns a dict suitable for json serialization."""
     return {
         'artifact':
             json.loads(json_format.MessageToJson(self.artifact)),
@@ -143,11 +143,12 @@ class Artifact(json_utils.Jsonable):
     }
 
   @classmethod
-  def from_json_dict(cls, dict_data: Dict[Text, Any]) -> Any:
+  def parse_from_json_dict(cls, d: Dict[Text, Any]):
+    """Creates a instance of Artifact from a json deserialized dict."""
     artifact = metadata_store_pb2.Artifact()
-    json_format.Parse(json.dumps(dict_data['artifact']), artifact)
+    json_format.Parse(json.dumps(d['artifact']), artifact)
     artifact_type = metadata_store_pb2.ArtifactType()
-    json_format.Parse(json.dumps(dict_data['artifact_type']), artifact_type)
+    json_format.Parse(json.dumps(d['artifact_type']), artifact_type)
     result = Artifact(artifact_type.name)
     result.set_artifact_type(artifact_type)
     result.set_artifact(artifact)
