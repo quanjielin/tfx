@@ -16,9 +16,13 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-from typing import Any, Dict, List, Optional, Text, Type
+import abc
+
+from six import with_metaclass
+from typing import Any, Dict, List, Optional, Text, Type, Union
 
 from tfx import types
+from tfx.utils import json_utils
 
 
 class ExecutionDecision(object):
@@ -104,7 +108,7 @@ class ComponentInfo(object):
     self.component_id = component_id
 
 
-class RuntimeParameter(object):
+class RuntimeParameter(with_metaclass(abc.ABCMeta, json_utils.Jsonable)):
   """Runtime parameter.
 
   Attributes:
@@ -118,7 +122,7 @@ class RuntimeParameter(object):
   def __init__(
       self,
       name: Text,
-      default: Any = None,
+      default: Optional[Union[int, float, bool, Text]] = None,
       ptype: Optional[Type] = None,  # pylint: disable=g-bare-generic
       description: Optional[Text] = None):
     if ptype and ptype not in [int, float, bool, Text]:
@@ -129,3 +133,8 @@ class RuntimeParameter(object):
     self.default = default
     self.ptype = ptype
     self.description = description
+
+  def __repr__(self):
+    return ('RuntimeParam: name: %s, default: %s, ptype: %s, '
+            'description: %s') % (self.name, self.default,
+                                  self.ptype, self.description)
