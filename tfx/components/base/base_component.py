@@ -32,7 +32,7 @@ from tfx.utils import abc_utils
 from tfx.utils import json_utils
 
 # Constants that used for serializing and de-serializing components.
-_DRIVER_CLASS_PATH_KEY = 'driver_class_path'
+_DRIVER_CLASS_KEY = 'driver_class'
 _EXECUTOR_SPEC_KEY = 'executor_spec'
 _INSTANCE_NAME_KEY = 'instance_name'
 _SPEC_KEY = 'spec'
@@ -139,8 +139,7 @@ class BaseComponent(with_metaclass(abc.ABCMeta, json_utils.Jsonable)):
 
   def to_json_dict(self) -> Dict[Text, Any]:
     return {
-        # _DRIVER_CLASS_PATH_KEY: driver_class_path,
-        _DRIVER_CLASS_PATH_KEY: self.driver_class,
+        _DRIVER_CLASS_KEY: self.driver_class,
         _EXECUTOR_SPEC_KEY: self.executor_spec,
         _INSTANCE_NAME_KEY: self.instance_name,
         _SPEC_KEY: self.spec
