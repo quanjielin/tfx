@@ -21,10 +21,21 @@ message Input {
   // List of split name and input glob pattern pairs.
   //
   // 'name' shouldn't be empty and must be unique within the list.
+  //
   // 'pattern' is a glob relative file pattern that maps to input files with
   //   root directory given by input base path. Some ExampleGen might take the
   //   pattern as something other than file pattern, e.g. BigQuery.
-  // TODO(ruoyu): support span and version spec in continuous training.
+  //
+  // [SPAN spec]
+  //   - This spec matches digits and maps the data into the relevant SPAN
+  //     numbers. e.g. 'data_{SPAN}-*.tfrecord' will collect files like
+  //     'data_12-a.tfrecord', 'date_12-b.tfrecord'.
+  //   - When SPAN spec is missing, it's assumed to be always Span 0.
+  //   - If SPAN is specified, pipeline will process the latest span, and store
+  //     the span number in metadata.
+  //
+  // TODO(jyzhao): support version and date spec.
+  // TODO(jyzhao): support range config for define certain spans to process.
   message Split {
     string name = 1;
     string pattern = 2;
@@ -33,7 +44,7 @@ message Input {
 }
 
 // Optional specified configuration for example gen.
-message CustomConfig{
+message CustomConfig {
   google.protobuf.Any custom_config = 1;
 }
 

@@ -17,20 +17,20 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import copy
 import os
 import tensorflow as tf
 from google.protobuf import json_format
 from ml_metadata.proto import metadata_store_pb2
 from tfx.components.example_gen import driver
 from tfx.proto import example_gen_pb2
+from tfx.types import channel_utils
 from tfx.types import standard_artifacts
 from tfx.utils import io_utils
 
 
 class DriverTest(tf.test.TestCase):
 
-  def testPrepareInputForProcessing(self):
+  def testResolveInputArtifacts(self):
     # Create input splits.
     test_dir = os.path.join(
         os.environ.get('TEST_UNDECLARED_OUTPUTS_DIR', self.get_temp_dir()),
@@ -65,7 +65,7 @@ class DriverTest(tf.test.TestCase):
     # Create input dict.
     input_base = standard_artifacts.ExternalArtifact()
     input_base.uri = input_base_path
-    input_dict = {'input_base': [input_base]}
+    input_channels = {'input_base': channel_utils.as_channel([input_base])}
     # Create exec proterties.
     exec_properties = {
         'input_config':
@@ -79,8 +79,8 @@ class DriverTest(tf.test.TestCase):
     # Cache not hit.
     mock_metadata.get_artifacts_by_uri.return_value = [artifacts[0]]
     mock_metadata.publish_artifacts.return_value = [artifacts[3]]
-    updated_input_dict = example_gen_driver._prepare_input_for_processing(
-        copy.deepcopy(input_dict), exec_properties)
+    updated_input_dict = example_gen_driver.resolve_input_artifacts(
+        input_channels, exec_properties, None, None)
     self.assertEqual(1, len(updated_input_dict))
     self.assertEqual(1, len(updated_input_dict['input_base']))
     updated_input_base = updated_input_dict['input_base'][0]
@@ -90,13 +90,68 @@ class DriverTest(tf.test.TestCase):
     # Cache hit.
     mock_metadata.get_artifacts_by_uri.return_value = artifacts
     mock_metadata.publish_artifacts.return_value = []
-    updated_input_dict = example_gen_driver._prepare_input_for_processing(
-        copy.deepcopy(input_dict), exec_properties)
+    updated_input_dict = example_gen_driver.resolve_input_artifacts(
+        input_channels, exec_properties, None, None)
     self.assertEqual(1, len(updated_input_dict))
     self.assertEqual(1, len(updated_input_dict['input_base']))
     updated_input_base = updated_input_dict['input_base'][0]
     self.assertEqual(3, updated_input_base.id)
     self.assertEqual(input_base_path, updated_input_base.uri)
+
+  def testResolveInputArtifactsWithSpan(self):
+    # Create input splits.
+    test_dir = os.path.join(
+        os.environ.get('TEST_UNDECLARED_OUTPUTS_DIR', self.get_temp_dir()),
+        self._testMethodName)
+    input_base_path = os.path.join(test_dir, 'input_base')
+    span1_split1 = os.path.join(input_base_path, 'span01', 'split1', 'data')
+    io_utils.write_string_file(span1_split1, 'testing11')
+    span1_split2 = os.path.join(input_base_path, 'span01', 'split2', 'data')
+    io_utils.write_string_file(span1_split2, 'testing12')
+    span2_split1 = os.path.join(input_base_path, 'span02', 'split1', 'data')
+    io_utils.write_string_file(span2_split1, 'testing21')
+    span2_split2 = os.path.join(input_base_path, 'span02', 'split2', 'data')
+    io_utils.write_string_file(span2_split2, 'testing22')
+
+    # Mock metadata.
+    mock_metadata = tf.test.mock.Mock()
+    example_gen_driver = driver.Driver(mock_metadata)
+
+    # Create input dict.
+    input_base = standard_artifacts.ExternalArtifact()
+    input_base.uri = input_base_path
+    input_channels = {'input_base': channel_utils.as_channel([input_base])}
+    # Create exec proterties.
+    exec_properties = {
+        'input_config':
+            json_format.MessageToJson(
+                example_gen_pb2.Input(splits=[
+                    example_gen_pb2.Input.Split(
+                        name='s1', pattern='span{SPAN}/split1/*'),
+                    example_gen_pb2.Input.Split(
+                        name='s2', pattern='span{SPAN}/split2/*')
+                ])),
+    }
+
+    # Cache not hit.
+    mock_metadata.get_artifacts_by_uri.return_value = []
+    mock_metadata.publish_artifacts.return_value = [
+        metadata_store_pb2.Artifact()
+    ]
+    example_gen_driver.resolve_input_artifacts(input_channels, exec_properties,
+                                               None, None)
+    updated_input_config = example_gen_pb2.Input()
+    json_format.Parse(exec_properties['input_config'], updated_input_config)
+    self.assertProtoEquals(
+        """
+        splits {
+          name: "s1"
+          pattern: "span02/split1/*"
+        }
+        splits {
+          name: "s2"
+          pattern: "span02/split2/*"
+        }""", updated_input_config)
 
 
 if __name__ == '__main__':
