@@ -74,7 +74,7 @@ mkdir -p ~/tfx/mnist
 # Copy the simple pipeline example and adjust for user's environment
 cp mnist_pipeline.py ~/airflow/dags/mnist_pipeline.py
 cp mnist_utils.py ~/airflow/dags/mnist_utils.py
-cp -R data ~~/tfx/mnist
+cp -R data ~/tfx/mnist
 
 # Copy data to ~/airflow/data
 # TODO(b/130311020): Combine Chicago Taxi data files
